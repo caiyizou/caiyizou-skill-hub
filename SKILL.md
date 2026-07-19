@@ -1,7 +1,7 @@
 ---
 name: caiyizou-skill-hub
 version: 1.9.0
-description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"。
+description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"、"帮我装个叫 X 的 skill"、"我要建一个 X skill"、"skill hub 怎么用"、"caiyizou-skill-hub"。
 ---
 
 # caiyizou-skill-hub
@@ -71,6 +71,30 @@ bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh --keep-templates  
 ```
 
 卸载 rules 前会自动 `cp` 备份到 `*.pre-uninstall.<timestamp>` 防误删。
+
+## 🗣️ 你口述 → agent 该执行的命令（agent 必读）
+
+**agent 看到下面任何口述都要先映射到斜杠命令**，再走下方「命令→动作映射」流程。**禁止**直接 `mkdir` + `git clone` + `ln -s` 三连 — 那会跳过归档 + 飞书指南 + doctor。
+
+| 你对 agent 说的话 | agent 必须先转成 | 然后走 |
+|------------------|------------------|--------|
+| 「帮我装/安装一个叫 X 的 skill」「我装个 X」「load X skill」 | `/caiyizou-skill-hub install X` | §`/caiyizou-skill-hub install <name>` 节 |
+| 「帮我建/创建/写/做/做一个 X skill」「我想做 X」 | `/caiyizou-skill-hub create X` | §`/caiyizou-skill-hub create <name>` 节 |
+| 「列出我所有 skill」「我装过哪些」 | `/caiyizou-skill-hub list` | §`/caiyizou-skill-hub list` 节 |
+| 「补归档 X」「X 没归档上」「X 在飞书里没有」 | `/caiyizou-skill-hub archive X` | §`/caiyizou-skill-hub archive <name>` 节 |
+| 「skill hub 出问题」「自检」「找找哪个挂了」 | `/caiyizou-skill-hub doctor` | §`/caiyizou-skill-hub doctor` 节 |
+| 「卸载 skill hub」「不用了」 | `/caiyizou-skill-hub uninstall` | §卸载细节 节 |
+| 「skill 体系怎么搭」「从头设置」「初始化 skill hub」 | `/caiyizou-skill-hub setup` | §一键搭建 节 |
+
+**判别要点（agent 必读）**：
+
+1. 出现「**装/安装/load/install**」+「**skill**」 → `install`
+2. 出现「**建/创建/写/新建/make/create**」+「**skill**」 → `create`
+3. 出现「**这个 skill**」「**刚才那个 skill**」但没明说名字 → **先反问名字**，别瞎执行
+4. 出现「**列出 skill hub**」/「**自检 doctor**」 → `list` / `doctor`
+5. **不要自己造目录 + git clone + ln -s**，一定先转斜杠命令，否则会跳过归档与飞书指南生成
+
+---
 
 ## 🔧 命令 → 动作映射（agent 怎么执行每个命令）
 
