@@ -230,11 +230,15 @@ if [ -z "$BASE_TOKEN" ] || [ -z "$TABLE_ID" ]; then
     fi
 fi
 
-# =================== 6. 父 wiki 配置 ===================
+# =================== 6. 使用指南存放位置配置 ===================
 echo ""
-echo "6️⃣  父 wiki 节点配置"
-read -p "   「创建类」父 wiki URL（直接回车跳过）: " create_wiki_url
-read -p "   「安装类」父 wiki URL（直接回车跳过）: " install_wiki_url
+echo "6️⃣  使用指南存放位置"
+echo "   你之后装/创建任何 skill，AI agent 会自动给该 skill 生成一份小白使用指南。"
+echo "   你想把这些使用指南放在飞书哪两份文档下面？"
+echo "   （粘飞书文档链接即可，回车跳过该类）"
+echo ""
+read -p "   ⓐ「我自己创建的 skill」使用指南放飞书哪个文档下？(URL/回车跳过): " create_wiki_url
+read -p "   ⓑ「我安装的 skill」使用指南放飞书哪个文档下？      (URL/回车跳过): " install_wiki_url
 
 CREATE_WIKI_NODE=""
 INSTALL_WIKI_NODE=""
@@ -242,12 +246,18 @@ if [ -n "$create_wiki_url" ] && command -v lark-cli >/dev/null 2>&1; then
     WIKI_NODE=""
     if resolve_feishu_url "$create_wiki_url" "wiki"; then
         CREATE_WIKI_NODE="$WIKI_NODE"
+        echo "   ✅ ⓐ 配置完成（node=${WIKI_NODE:0:8}...）"
+    else
+        echo "   ⚠️ ⓐ 配置失败，跳过"
     fi
 fi
 if [ -n "$install_wiki_url" ] && command -v lark-cli >/dev/null 2>&1; then
     WIKI_NODE=""
     if resolve_feishu_url "$install_wiki_url" "wiki"; then
         INSTALL_WIKI_NODE="$WIKI_NODE"
+        echo "   ✅ ⓑ 配置完成（node=${WIKI_NODE:0:8}...）"
+    else
+        echo "   ⚠️ ⓑ 配置失败，跳过"
     fi
 fi
 

@@ -25,45 +25,97 @@ AGENT_SKILLS_DIR=""
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
     AGENT_SKILLS_DIR="$CAIYIZOU_AGENT_SKILLS_DIR"
-    echo "   检测到旧配置：$ENV_FILE"
 fi
 
-# 删 5 种可能路径下的软链（兼容历史安装）
+# ===== 第一步：列出将删除的所有路径 =====
+echo "📋 即将删除："
+echo ""
+
+TO_DELETE=()
+
 for dir in "$AGENT_SKILLS_DIR" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.cursor/skills" "$HOME/.gemini/skills"; do
     [ -z "$dir" ] && continue
     link="$dir/$SKILL_NAME"
     if [ -L "$link" ]; then
-        rm "$link"
-        echo "   🗑️  删软链：$link"
+        echo "   🗑️  软链：$link"
+        TO_DELETE+=("$link")
     elif [ -d "$link" ] && [ ! -L "$link" ]; then
         echo "   ⚠️  $link 是目录不是软链（可能你装过同名 skill），跳过"
     fi
 done
 
+[ -d "$HOME/.agents/skills/$SKILL_NAME" ] && {
+    echo "   🗑️  主目录：~/.agents/skills/$SKILL_NAME"
+    TO_DELETE+=("$HOME/.agents/skills/$SKILL_NAME")
+}
+
+if [ "$KEEP_CONFIG" != "true" ] && [ -f "$ENV_FILE" ]; then
+    echo "   🗑️  配置：$ENV_FILE"
+    TO_DELETE+=("$ENV_FILE")
+fi
+
+RULES_FILE="$HOME/.claude/rules/skill-creation-workflow.md"
+if [ "$KEEP_RULES" != "true" ] && [ -f "$RULES_FILE" ]; then
+    echo "   🗑️  rules：$RULES_FILE（先备份到 *.pre-uninstall.<ts>）"
+    TO_DELETE+=("$RULES_FILE")
+fi
+
+for tpl in skill-guide-create.md skill-guide-install.md; do
+    if [ "$KEEP_TEMPLATES" != "true" ] && [ -f "$HOME/.claude/templates/$tpl" ]; then
+        echo "   🗑️  模板：~/.claude/templates/$tpl"
+        TO_DELETE+=("$HOME/.claude/templates/$tpl")
+    fi
+done
+
+if [ "${#TO_DELETE[@]}" -eq 0 ]; then
+    echo "   （未发现任何需删除的文件）"
+    echo ""
+    echo "✨ 干净，无需操作"
+    exit 0
+fi
+
+# ===== 第二步：二次确认 =====
+echo ""
+echo "⚠️  删除以上 ${#TO_DELETE[@]} 个路径不可逆。rules 文件会备份到 *.pre-uninstall.<ts> 其他没备份。"
+echo ""
+read -p "确认删除？(yes 才行 / N 取消): " confirm
+if [[ "$confirm" != "yes" ]]; then
+    echo ""
+    echo "⏭️  已取消"
+    exit 0
+fi
+
+echo ""
+echo "🔧 执行删除..."
+echo ""
+
+# ===== 第三步：实际删除 =====
+for dir in "$AGENT_SKILLS_DIR" "$HOME/.claude/skills" "$HOME/.codex/skills" "$HOME/.cursor/skills" "$HOME/.gemini/skills"; do
+    [ -z "$dir" ] && continue
+    link="$dir/$SKILL_NAME"
+    if [ -L "$link" ]; then
+        rm "$link"
+    fi
+done
+
 if [ -d "$HOME/.agents/skills/$SKILL_NAME" ]; then
     rm -rf "$HOME/.agents/skills/$SKILL_NAME"
-    echo "   🗑️  删主目录：~/.agents/skills/$SKILL_NAME"
 fi
 
 if [ "$KEEP_CONFIG" != "true" ] && [ -f "$ENV_FILE" ]; then
     rm "$ENV_FILE"
     rmdir "$HOME/.config/caiyizou-skill-hub" 2>/dev/null || true
-    echo "   🗑️  删配置：$ENV_FILE"
-else
-    echo "   📦 保留配置：$ENV_FILE"
 fi
 
-RULES_FILE="$HOME/.claude/rules/skill-creation-workflow.md"
 if [ "$KEEP_RULES" != "true" ] && [ -f "$RULES_FILE" ]; then
     cp "$RULES_FILE" "${RULES_FILE}.pre-uninstall.$(date +%Y%m%d-%H%M%S)"
     rm "$RULES_FILE"
-    echo "   🗑️  删 rules（备份到 *.pre-uninstall.<ts>）"
+    echo "   📦 rules 备份到 *.pre-uninstall.<ts>"
 fi
 
 for tpl in skill-guide-create.md skill-guide-install.md; do
     if [ "$KEEP_TEMPLATES" != "true" ] && [ -f "$HOME/.claude/templates/$tpl" ]; then
         rm "$HOME/.claude/templates/$tpl"
-        echo "   🗑️  删模板：~/.claude/templates/$tpl"
     fi
 done
 
