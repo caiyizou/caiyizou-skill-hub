@@ -22,9 +22,15 @@ echo ""
 
 ENV_FILE="$HOME/.config/caiyizou-skill-hub/env"
 AGENT_SKILLS_DIR=""
+NEVER_SETUP="false"
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
     AGENT_SKILLS_DIR="$CAIYIZOU_AGENT_SKILLS_DIR"
+else
+    NEVER_SETUP="true"
+    echo "⚠️  没找到 env 文件：$ENV_FILE"
+    echo "   你可能从未跑过 setup。仍然继续会按下面的清单逐项询问确认删除。"
+    echo ""
 fi
 
 # ===== 第一步：列出将删除的所有路径 =====
@@ -72,6 +78,11 @@ if [ "${#TO_DELETE[@]}" -eq 0 ]; then
     echo ""
     echo "✨ 干净，无需操作"
     exit 0
+fi
+
+if [ "$NEVER_SETUP" = "true" ]; then
+    echo "💡 这是「你从未 setup 过」模式：env / rules / 模板都不在你的本机，"
+    echo "   唯一可删的只剩主目录 + agent 目录下的软链。"
 fi
 
 # ===== 第二步：二次确认 =====

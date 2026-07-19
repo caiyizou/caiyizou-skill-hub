@@ -2,6 +2,13 @@
 
 All notable changes to this skill will be documented here. Format: [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/).
 
+## [1.8.0] - 2026-07-19
+
+### Fixed (P2)
+- CHANGELOG.md v1.0.0 条目去掉「无同名保护」不实声明；补「archive.sh 同名 3 选 1」原始能力描述
+- setup.sh 写 env 时新增 `CAIYIZOU_HUB_VERSION` 字段；doctor.sh 检测到旧 env（缺版本号或版本低于 1.8）提示重跑 setup 升级
+- uninstall.sh 检测到 env 不存在时显式标识「你从未 setup 过」模式，告知只删主目录 + 软链
+
 ## [1.7.0] - 2026-07-19
 
 ### Fixed (P1)
@@ -71,4 +78,5 @@ All notable changes to this skill will be documented here. Format: [Keep a Chang
 ### Added
 - 初版 SKILL.md + README.md + scripts/setup.sh
 - 飞书表格 + 父 wiki 配置走 setup 交互式询问
-- 全局 rules 文件（v1 版本，无同名保护）
+- 全局 rules 文件
+- archive.sh：jq 拼 JSON + 同名保护（升级 / 改名 / 取消 3 选 1）

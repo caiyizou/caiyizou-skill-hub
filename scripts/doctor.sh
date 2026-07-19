@@ -40,6 +40,14 @@ echo "2️⃣  env 配置"
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"
     ok "env 文件存在：$ENV_FILE"
+    # 版本检查（如 setup 早于 1.8 写的 env，会提示升级）
+    if [ -z "$CAIYIZOU_HUB_VERSION" ]; then
+        warn "HUB_VERSION 未记录（env 是 v1.7 及之前写的），建议重跑 setup"
+    elif [ "$CAIYIZOU_HUB_VERSION" != "1.8.0" ]; then
+        warn "HUB_VERSION=$CAIYIZOU_HUB_VERSION（当前 1.8.0），考虑重跑 setup 升级"
+    else
+        ok "HUB_VERSION=$CAIYIZOU_HUB_VERSION"
+    fi
     [ -n "$CAIYIZOU_AGENT_NAME" ]      && ok "AGENT_NAME=$CAIYIZOU_AGENT_NAME"      || warn "AGENT_NAME 为空"
     [ -n "$CAIYIZOU_AGENT_SKILLS_DIR" ] && ok "AGENT_SKILLS_DIR=$CAIYIZOU_AGENT_SKILLS_DIR" || warn "AGENT_SKILLS_DIR 为空"
     [ -n "$CAIYIZOU_NEED_SYMLINK" ]     && ok "NEED_SYMLINK=$CAIYIZOU_NEED_SYMLINK"  || warn "NEED_SYMLINK 为空"
