@@ -57,6 +57,18 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问：
 | `/caiyizou-skill-hub create <name>` | 创建新 Skill 并归档 | 自己写新 Skill 时 |
 | `/caiyizou-skill-hub archive <name>` | 补归档已有 Skill 到飞书表格 | 漏归档、想补归档 |
 | `/caiyizou-skill-hub list` | 列出当前所有 Skill 及归档状态 | 不知道装过哪些时 |
+| `/caiyizou-skill-hub uninstall` | 卸载本体系（删软链/主目录/config/rules/模板） | 不想用了时 |
+
+### 卸载细节
+
+```bash
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh                    # 全删
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh --keep-config       # 保留飞书配置
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh --keep-rules        # 保留全局 rules
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh --keep-templates    # 保留使用指南模板
+```
+
+卸载 rules 前会自动 `cp` 备份到 `*.pre-uninstall.<timestamp>` 防误删。
 
 ## 🔧 命令 → 动作映射（agent 怎么执行每个命令）
 
@@ -192,7 +204,8 @@ setup 写 rules / archive 写表格时，碰到已存在的同名 → **必须**
 | `scripts/setup.sh` | 交互式搭建（含实测 agent 兼容性 / 双 URL 解析 / 同名保护 / 引导装 lark-cli） |
 | `scripts/archive.sh` | 把 Skill 归档到飞书表格（同名保护 + jq 拼 JSON + update 路径） |
 | `scripts/add-field.sh` | 给飞书表格添加字段（从环境变量读 base-token/table-id） |
-| `scripts/pre-publish-clean.sh` | 发布前自动扫描个人配置 |
+| `scripts/pre-publish-clean.sh` | 发布前自动扫描个人配置（支持 --apply 自动替换） |
+| `scripts/uninstall.sh` | 卸载脚本（支持 --keep-config / --keep-rules / --keep-templates） |
 | `templates/skill-guide-create.md` | 自创 Skill 使用指南模板（setup 自动 cp 到本地） |
 | `templates/skill-guide-install.md` | 安装 Skill 使用指南模板（setup 自动 cp 到本地） |
 
@@ -212,14 +225,48 @@ redskill install caiyizou-skill-hub
 # 方式 2：npx skills（跨 Agent）
 npx skills add https://github.com/caiyizou/caiyizou-skill-hub
 
-# 方式 3：手动
+# 方式 3：手动（克隆完只需按你 agent 建 1 条软链，不要脏建 4 个目录）
 git clone https://github.com/caiyizou/caiyizou-skill-hub.git ~/.agents/skills/caiyizou-skill-hub
-# 按你 agent 类型决定是否建软链（见上面的实测表）
-# Claude Code 必须、Codex 不需要、Cursor/Gemini 实测
+
+# Claude Code（必须软链）：
+ln -s ~/.agents/skills/caiyizou-skill-hub ~/.claude/skills/caiyizou-skill-hub
+
+# Codex（无需软链，直接读 ~/.agents/skills/）：
+echo "无需操作"
+
+# Cursor / Gemini CLI（先实测，按结果决定）：
+ln -s ~/.agents/skills/caiyizou-skill-hub ~/.cursor/skills/caiyizou-skill-hub
+# 或
+ln -s ~/.agents/skills/caiyizou-skill-hub ~/.gemini/skills/caiyizou-skill-hub
 ```
+
+## 🍴 Fork 后必改
+
+如果你 fork 了本仓库再发到自己的 GitHub，记得全局替换：
+
+| 占位符 | 你的值 |
+|--------|--------|
+| `https://github.com/caiyizou/caiyizou-skill-hub` | 你 fork 后的仓库 URL |
+| `Caiyi zou <caiyizou@...>` (commit author) | 你的 git config user.name + user.email |
+| skill 名称 `caiyizou-skill-hub` | 你自己的 skill 名（建议 `xxx-skill-hub` 之类） |
+
+最简单：用 VSCode / Cursor 全局搜索替换 `caiyizou` 为你的标识符。
+
+## 不适用场景
 
 ## 不适用场景
 
 - 公司有现成的 Skill 管理平台 → 用公司的，不要重复造轮子
 - 只想管理一两个 Skill → 直接手动装就行，不需要这个体系
 - 不使用飞书 → 跳过飞书相关步骤，只用本地 rules
+
+---
+
+## 🐛 已知边界
+
+| 项 | 现状 | 绕开方式 |
+|----|------|---------|
+| lark-cli 不同版本 `+url-resolve` 返回结构可能不同 | setup 内部用 python + 异常兜底 | 升级 lark-cli 后跑一次 setup 校验 |
+| 飞书表格不在 wiki 嵌入时 | setup 第 4 步走 base 路径 | 拿 base URL 而不是 wiki URL |
+| Cursor / Gemini CLI 是否识别 `~/.agents/skills/` | setup 第 4 步让你实测 | 实测结果决定要不要软链 |
+| 同一父 wiki 下大规模新建子文档 | 飞书 API 限频 | 慢点跑 + 多脚本时分批 |
