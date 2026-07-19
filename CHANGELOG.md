@@ -2,6 +2,19 @@
 
 All notable changes to this skill will be documented here. Format: [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/).
 
+## [1.6.0] - 2026-07-19
+
+### Fixed (P0)
+- 共享依赖检查：`scripts/_lib.sh` 新增 `require_deps` 函数；archive.sh / setup.sh / pre-publish-clean.sh / add-field.sh / render-guide.sh 全部 source 上，缺失 python3 / jq / lark-cli 时打印安装方法并退出，不再神秘报错
+- add-field.sh 不再用字符串拼接 JSON，改用 `jq -n` + type 白名单校验（防字段名特殊字符注入）
+- 模板预处理从 SKILL.md 内联 python 巨脚本改成 `scripts/render-guide.sh` + `scripts/_render-guide.py`：
+  - 智能检测：install 模板（无 HTML 注释无附录）→ 只跑占位符替换；create 模板（含 HTML 注释 + 附录段）→ 自动剥离
+  - 减少 SKILL.md 代码体积约 20 行
+
+### Added
+- `scripts/_lib.sh`：共享工具函数（require_deps）
+- `scripts/render-guide.sh` + `scripts/_render-guide.py`：模板渲染（cli + python helper）
+
 ## [1.5.0] - 2026-07-19
 
 ### Changed

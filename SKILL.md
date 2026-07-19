@@ -1,6 +1,6 @@
 ---
 name: caiyizou-skill-hub
-version: 1.5.0
+version: 1.6.0
 description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"。
 ---
 
@@ -90,28 +90,11 @@ setup.sh 会自动问 3 个问题、写 env、写 rules。详见上文"一键搭
    - GitHub：`git clone https://github.com/<owner>/<name>.git ~/.agents/skills/<name>`
    - RedSkill：`redskill install <name>`（自动处理）
 3. 建立软链（如你的 agent 需要，参考跨 Agent 实测表）
-4. **模板预处理**（强制步骤，否则飞书文档会有占位符和附录）：
+4. **模板渲染**（强制步骤，否则飞书文档会有占位符和模板附录）：
    ```bash
-   # 读模板 + 填充占位符 + 删附录段 + 删 HTML 注释
-   python3 -c "
-   import re, sys
-   from string import Template
-   tpl_path = '$HOME/.claude/templates/skill-guide-install.md'
-   values = {'skill-name': '<name>', 'version': '1.0.0', 'category': '开发工具',
-             'created': '$(date +%Y-%m-%d)', 'updated': '$(date +%Y-%m-%d)',
-             'skill-command': '<name>', 'current-version': '1.0.0',
-             '功能分类': '开发工具', '分类': '开发工具'}
-   with open(tpl_path) as f: content = f.read()
-   # 占位符替换（{xxx} 形式 + 中文键名）
-   for k, v in values.items():
-       content = content.replace('{' + k + '}', v)
-   # 删除 HTML 注释（<!-- ... -->）
-   content = re.sub(r'<!--.*?-->', '', content, flags=re.DOTALL)
-   # 删除「附录：章节更新方式速查」段（模板自带的最后一段）
-   content = re.sub(r'\n## 📚 附录.*$', '', content, flags=re.DOTALL)
-   with open('/tmp/<name>-guide-final.md', 'w') as f: f.write(content)
-   "
+   bash ~/.agents/skills/caiyizou-skill-hub/scripts/render-guide.sh install <name> <version> <category>
    ```
+   输出：`/tmp/<name>-guide-final.md`（已自动替换占位符、智能剥离 HTML 注释和附录段）
 5. 跑下面"标准化流程 § 顺序"里的 6 步（用 `/tmp/<name>-guide-final.md` 而非模板原文）
 
 ### `/caiyizou-skill-hub create <name>`
@@ -126,7 +109,10 @@ setup.sh 会自动问 3 个问题、写 env、写 rules。详见上文"一键搭
    ```
    建议长度 80-200 行，含「设计原则 / 命令 / 命令→动作映射 / 内置脚本」段
 3. 建软链（如需要）
-4. **模板预处理**（同 install 步骤 4，用 create 模板）
+4. **模板渲染**（同上 install 步骤 4，但传 `create` 而非 `install`）：
+   ```bash
+   bash ~/.agents/skills/caiyizou-skill-hub/scripts/render-guide.sh create <name> <version> <category>
+   ```
 5. 跑"标准化流程 § 顺序"里的 6 步（生成使用指南 + 归档）
 
 ### `/caiyizou-skill-hub archive <name>`

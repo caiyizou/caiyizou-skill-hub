@@ -6,6 +6,11 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_lib.sh
+source "$SCRIPT_DIR/_lib.sh"
+require_deps python3
+
 SKILL_DIR="${1:?用法: bash pre-publish-clean.sh <skill-dir> [--apply]}"
 APPLY="false"
 [ "${2:-}" = "--apply" ] && APPLY="true"

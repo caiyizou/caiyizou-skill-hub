@@ -6,6 +6,11 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_lib.sh
+source "$SCRIPT_DIR/_lib.sh"
+require_deps python3 jq lark-cli
+
 ENV_FILE="$HOME/.config/caiyizou-skill-hub/env"
 if [ -f "$ENV_FILE" ]; then
     source "$ENV_FILE"

@@ -5,6 +5,12 @@
 
 set -e
 
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+# shellcheck source=_lib.sh
+source "$SCRIPT_DIR/_lib.sh"
+# 注意：setup.sh 是第一个跑、用来引导安装依赖的脚本，所以只用可选工具校验。
+# 实际必需工具 python3 / jq / lark-cli 在 archive / pre-publish 时才强校验。
+
 SKILL_NAME="caiyizou-skill-hub"
 AGENTS_DIR="$HOME/.agents/skills"
 CONFIG_DIR="$HOME/.config/caiyizou-skill-hub"
