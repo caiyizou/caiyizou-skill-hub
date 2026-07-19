@@ -58,6 +58,54 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问：
 | `/caiyizou-skill-hub archive <name>` | 补归档已有 Skill 到飞书表格 | 漏归档、想补归档 |
 | `/caiyizou-skill-hub list` | 列出当前所有 Skill 及归档状态 | 不知道装过哪些时 |
 
+## 🔧 命令 → 动作映射（agent 怎么执行每个命令）
+
+用户跟 AI agent 说上面任何一条命令时，agent 必须**严格按下面流程**执行，不能让用户多说话：
+
+### `/caiyizou-skill-hub setup`
+
+```bash
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/setup.sh
+```
+
+setup.sh 会自动问 3 个问题、写 env、写 rules。详见上文"一键搭建"段。
+
+### `/caiyizou-skill-hub install <name>`
+
+1. `mkdir -p ~/.agents/skills/<name>`
+2. 拉取 skill：
+   - GitHub：`git clone https://github.com/<owner>/<name>.git ~/.agents/skills/<name>`
+   - RedSkill：`redskill install <name>`（自动处理）
+3. 建立软链（如你的 agent 需要，参考跨 Agent 实测表）
+4. 跑下面"标准化流程 § 顺序"里的 6 步
+
+### `/caiyizou-skill-hub create <name>`
+
+1. `mkdir -p ~/.agents/skills/<name>`
+2. 写 `~/.agents/skills/<name>/SKILL.md`（agent 根据用户口述的需求生成）
+3. 建软链（如需要）
+4. 跑"标准化流程 § 顺序"里的 6 步（生成使用指南 + 归档）
+
+### `/caiyizou-skill-hub archive <name>`
+
+```bash
+source ~/.config/caiyizou-skill-hub/env  # 必须 source，否则 token 为空
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/archive.sh <name> <version> <category> 自制 "" <guide-url>
+```
+
+或更简单：跑"标准化流程"§ 步骤 2-6（生成 / 写 / 归档）
+
+### `/caiyizou-skill-hub list`
+
+```bash
+ls -la ~/.agents/skills/   # 本地已装 skill
+lark-cli base +record-list --base-token "$CAIYIZOU_BASE_TOKEN" --table-id "$CAIYIZOU_TABLE_ID"   # 飞书已归档 skill
+```
+
+agent 交叉对比，给用户两栏：本地 vs 飞书已归档，标出"已装未归档"。
+
+
+
 ## 发布到 GitHub / 分享给别人之前 — 必走清理流程
 
 **当用户说"发布/分享/上传/给朋友用"时，agent 必须先跑：**

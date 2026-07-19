@@ -38,12 +38,32 @@ if ! lark-cli base +field-list \
         --json '{"name":"使用指南","type":"url","description":"小白使用指南飞书文档链接"}' >/dev/null
 fi
 
-# ===== 2. 检查是否已存在同名记录 =====
-EXISTING_RECORD_ID=$(lark-cli base +record-list \
+# ===== 2. 检查是否已存在同名记录（不依赖 --filter 语法，先全 list 再本地过滤）=====
+echo "   🔍 查重..."
+RAW_JSON=$(lark-cli base +record-list \
     --base-token "$BASE_TOKEN" \
     --table-id "$TABLE_ID" \
-    --filter "{\"conditions\":[{\"field_name\":\"技能名称\",\"operator\":\"==\",\"value\":\"$SKILL_NAME\"}]}" \
-    --format json 2>/dev/null | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('record_id_list',[''])[0])" 2>/dev/null || echo "")
+    --format json 2>/dev/null || echo '{}')
+
+EXISTING_RECORD_ID=$(echo "$RAW_JSON" | SKILL_NAME="$SKILL_NAME" python3 -c "
+import sys, json, os
+target = os.environ.get('SKILL_NAME', '')
+try:
+    d = json.load(sys.stdin)
+    items = d.get('data', {}).get('items', [])
+    if not items:
+        # 兼容某些版本返回 record_id_list
+        items = [{'record_id': rid, 'fields': {}} for rid in d.get('data', {}).get('record_id_list', [])]
+    for it in items:
+        fields = it.get('fields', {})
+        name = fields.get('技能名称', '')
+        if name == target:
+            print(it.get('record_id', ''))
+            sys.exit(0)
+    print('')
+except Exception:
+    print('')
+" 2>/dev/null || echo "")
 
 ACTION="create"
 if [ -n "$EXISTING_RECORD_ID" ] && [ "$EXISTING_RECORD_ID" != "None" ]; then
