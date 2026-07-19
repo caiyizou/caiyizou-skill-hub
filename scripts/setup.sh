@@ -383,11 +383,12 @@ if ! command -v lark-cli >/dev/null 2>&1; then
     fi
 else
     echo "   ✓ lark-cli：$(lark-cli --version 2>&1 | head -1)"
-    # 检查授权
-    if lark-cli auth status 2>/dev/null | grep -qE "logged in|已登录|authorized"; then
+    # 检查授权：用 whoami + 解析 JSON（不靠文本正则，兼容各种 lark-cli 版本/语言）
+    if lark-cli auth whoami --format json 2>/dev/null | jq -e '.data.user_id // .data.open_id // .data.union_id' >/dev/null 2>&1; then
         echo "   ✓ 已授权"
     else
         echo "   ⚠️ 未授权——归档会失败，记得跑 lark-cli auth login"
+        echo "      （doctor.sh 可以后续随时自检）"
     fi
 fi
 

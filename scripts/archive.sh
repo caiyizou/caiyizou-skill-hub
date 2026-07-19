@@ -33,14 +33,52 @@ TABLE_ID="$CAIYIZOU_TABLE_ID"
 
 echo "📦 归档 Skill：$SKILL_NAME v$VERSION → $TABLE_ID"
 
-# ===== 1. 确保「使用指南」字段存在 =====
-if ! lark-cli base +field-list \
-        --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
-        --format json 2>/dev/null | grep -q '"name":"使用指南"'; then
+# ===== 1. 读表格已有字段 + 别名映射 + 确保「使用指南」类字段存在 =====
+FIELD_LIST_JSON=$(lark-cli base +field-list \
+    --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
+    --format json 2>/dev/null || echo '{"data":{"items":[]}}')
+
+# 已有字段名（每行一个）
+EXISTING_FIELDS=$(echo "$FIELD_LIST_JSON" | jq -r '.data.items[]?.field_name // empty' 2>/dev/null)
+
+# pick_field <alias1> <alias2>...  返回第一个匹配 EXISTING_FIELDS 的，否则空
+pick_field() {
+    local alias
+    for alias in "$@"; do
+        if echo "$EXISTING_FIELDS" | grep -Fxq "$alias"; then
+            echo "$alias"
+            return 0
+        fi
+    done
+    return 1
+}
+
+# 别名映射（按优先级排）
+F_NAME=$(pick_field "技能名称" "name" || echo "")
+F_GITHUB=$(pick_field "GitHub地址" "github" "GitHub" || echo "")
+F_SKILLPATH=$(pick_field "本地SKILL.MD路径" "本地路径" "SKILL路径" || echo "")
+F_STATUS=$(pick_field "状态" "status" || echo "")
+F_DESC=$(pick_field "简介" "描述" "description" || echo "")
+F_VERSION=$(pick_field "版本" "version" || echo "")
+F_CATEGORY=$(pick_field "功能分类" "分类" "category" || echo "")
+F_CMD=$(pick_field "调用命令" "命令" "command" || echo "")
+F_INSTALL_SRC=$(pick_field "安装来源" "install_source" || echo "")
+F_SOURCE=$(pick_field "来源" "source" || echo "")
+F_LOG=$(pick_field "更新日志" "changelog" || echo "")
+F_GUIDE=$(pick_field "使用指南" "guide" "指南" || echo "")
+
+# 必须有「使用指南」类字段，没有则自动新建
+if [ -z "$F_GUIDE" ]; then
     echo "   ➕ 新增「使用指南」字段..."
     lark-cli base +field-create \
         --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
         --json '{"name":"使用指南","type":"url","description":"小白使用指南飞书文档链接"}' >/dev/null
+    F_GUIDE="使用指南"
+fi
+
+if [ -z "$F_NAME" ]; then
+    echo "   ❌ 飞书表格无「技能名称」字段，请先在表格里建一个 text 类型主键列"
+    exit 1
 fi
 
 # ===== 2. 检查是否已存在同名记录（不依赖 --filter 语法，先全 list 再本地过滤）=====
@@ -98,36 +136,70 @@ if [ -n "$EXISTING_RECORD_ID" ] && [ "$EXISTING_RECORD_ID" != "None" ]; then
     esac
 fi
 
-# ===== 3. 用 jq 拼 JSON（避免转义陷阱）=====
+# ===== 3. 用 jq 拼 JSON（按表格实际存在的字段写，跳过不存在的）=====
 JSON_FILE="/tmp/caiyizou-archive-$SKILL_NAME-$(date +%s).json"
 
 case "$ACTION" in
     create)
+        # 按 F_* 顺序入动态 fields + rows（空字段跳过）
+        ROW_JSON=$(jq -n \
+            --arg f_name "$F_NAME" --arg name "$SKILL_NAME" \
+            --arg f_github "$F_GITHUB" \
+            --arg f_skillpath "$F_SKILLPATH" --arg path "$HOME/.agents/skills/$SKILL_NAME/SKILL.md" \
+            --arg f_status "$F_STATUS" \
+            --arg f_desc "$F_DESC" \
+            --arg f_version "$F_VERSION" --arg version "$VERSION" \
+            --arg f_category "$F_CATEGORY" --arg category "$CATEGORY" \
+            --arg f_cmd "$F_CMD" \
+            --arg f_install_src "$F_INSTALL_SRC" --arg install_source "$INSTALL_SOURCE" \
+            --arg f_source "$F_SOURCE" --arg source "$SOURCE" \
+            --arg f_log "$F_LOG" --arg log "v$VERSION ($(date +%Y-%m-%d)): 通过 caiyizou-skill-hub 归档" \
+            --arg f_guide "$F_GUIDE" --arg guide "$GUIDE_URL" \
+            '
+              [
+                (if $f_name      != "" then {($f_name):      $name}                else empty end),
+                (if $f_github    != "" then {($f_github):    ""}                   else empty end),
+                (if $f_skillpath != "" then {($f_skillpath): $path}               else empty end),
+                (if $f_status    != "" then {($f_status):    "启用"}              else empty end),
+                (if $f_desc      != "" then {($f_desc):      ""}                   else empty end),
+                (if $f_version   != "" then {($f_version):   $version}             else empty end),
+                (if $f_category  != "" then {($f_category):  $category}            else empty end),
+                (if $f_cmd       != "" then {($f_cmd):       ("/" + $name)}       else empty end),
+                (if $f_install_src != "" then {($f_install_src): $install_source} else empty end),
+                (if $f_source    != "" then {($f_source):    $source}             else empty end),
+                (if $f_log       != "" then {($f_log):       $log}                 else empty end),
+                (if $f_guide     != "" then {($f_guide):     $guide}              else empty end)
+              ] | add
+            ')
+        # ROW_JSON 现在是一个对象 {field_name: value}，转成 [field_name,...] + [val,...]
         jq -n \
-            --arg name "$SKILL_NAME" \
-            --arg version "$VERSION" \
-            --arg category "$CATEGORY" \
-            --arg source "$SOURCE" \
-            --arg install_source "$INSTALL_SOURCE" \
-            --arg guide "$GUIDE_URL" \
-            --arg log "v$VERSION ($(date +%Y-%m-%d)): 通过 caiyizou-skill-hub 归档" \
-            --arg path "$HOME/.agents/skills/$SKILL_NAME/SKILL.md" \
+            --argjson row "$ROW_JSON" \
             '{
-              fields: ["技能名称","GitHub地址","本地SKILL.MD路径","状态","简介","版本","功能分类","调用命令","安装来源","来源","更新日志","使用指南"],
-              rows: [[
-                $name, "", $path, "启用", "", $version, $category,
-                ("/" + $name), $install_source, $source, $log, $guide
-              ]]
+              fields: ($row | keys),
+              rows: [[$row | to_entries[] | .value]]
             }' > "$JSON_FILE"
         ;;
 
     update:*)
         RECORD_ID="${ACTION#update:}"
-        # 读取旧日志，追加新日志
-        OLD_LOG=$(lark-cli base +record-get \
-            --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
-            --record-id "$RECORD_ID" --format json 2>/dev/null \
-            | python3 -c "import sys,json; d=json.load(sys.stdin); print(d.get('data',{}).get('fields',{}).get('更新日志',''))" 2>/dev/null || echo "")
+        # 读取旧日志（用动态 F_LOG）
+        OLD_LOG=""
+        if [ -n "$F_LOG" ]; then
+            OLD_LOG=$(lark-cli base +record-get \
+                --base-token "$BASE_TOKEN" --table-id "$TABLE_ID" \
+                --record-id "$RECORD_ID" --format json 2>/dev/null \
+                | EXISTING_LOG_FIELD="$F_LOG" python3 -c "
+import sys, json, os
+target = os.environ.get('EXISTING_LOG_FIELD', '更新日志')
+try:
+    d = json.load(sys.stdin)
+    fields = d.get('data',{}).get('fields',{})
+    val = fields.get(target, '')
+    print(val if val else '')
+except Exception:
+    print('')
+" 2>/dev/null || echo "")
+        fi
         NEW_LOG="v$VERSION ($(date +%Y-%m-%d)): 通过 caiyizou-skill-hub 归档"
         if [ -n "$OLD_LOG" ] && [ "$OLD_LOG" != "None" ]; then
             COMBINED_LOG="$NEW_LOG
@@ -136,18 +208,27 @@ $OLD_LOG"
             COMBINED_LOG="$NEW_LOG"
         fi
 
+        # update 路径：只更新存在的字段
+        UPD_JSON=$(jq -n \
+            --arg f_version "$F_VERSION" --arg version "$VERSION" \
+            --arg f_log "$F_LOG" --arg log "$COMBINED_LOG" \
+            --arg f_guide "$F_GUIDE" --arg guide "$GUIDE_URL" \
+            '
+              (
+                {}
+                | (if $f_version != "" then .["'"'"'"] = .["'"'"'"] else . end)
+              )
+              | . as $out
+              | reduce (
+                  (if $f_version != "" then {key:$f_version, val:$version} else empty end),
+                  (if $f_log    != "" then {key:$f_log,    val:$log}    else empty end),
+                  (if $f_guide  != "" then {key:$f_guide,  val:$guide}  else empty end)
+                ) as $x ({}; .[$x.key] = $x.val)
+            ')
         jq -n \
-            --arg version "$VERSION" \
-            --arg guide "$GUIDE_URL" \
-            --arg log "$COMBINED_LOG" \
-            '{
-              record_id: "'"$RECORD_ID"'",
-              fields: {
-                "版本": $version,
-                "使用指南": $guide,
-                "更新日志": $log
-              }
-            }' > "$JSON_FILE"
+            --arg record_id "$RECORD_ID" \
+            --argjson upd "$UPD_JSON" \
+            '{record_id: $record_id, fields: $upd}' > "$JSON_FILE"
         ;;
 esac
 

@@ -12,7 +12,7 @@
 | 2️⃣ | 让 AI agent 跑 `/caiyizou-skill-hub setup` |
 | 3️⃣ | setup 会问你 3 个问题：用什么 agent？飞书表格链接在哪？你想把使用指南放飞书哪两份文档下？ |
 | 4️⃣ | setup 自动建好软链 + 写配置 + 写全局 rules |
-| 5️⃣ | 之后 AI 装任何 Skill 都自动按本 skill 的标准化流程跑（建使用指南 + 归档飞书表格） |
+| 5️⃣ | 之后你跟 AI agent 说「帮我装 xxx skill」或「帮我建个叫 xxx 的新 skill」 → agent 自动跑下面的 install/create 流程（建使用指南 + 归档飞书表格） |
 
 详细命令见 §使用。
 
@@ -55,10 +55,11 @@ ln -s ~/.agents/skills/caiyizou-skill-hub ~/.gemini/skills/caiyizou-skill-hub
 
 ```bash
 /caiyizou-skill-hub setup        # 一键搭建
-/caiyizou-skill-hub install <n>  # 安装并归档
-/caiyizou-skill-hub create <n>   # 创建并归档
-/caiyizou-skill-hub archive <n>  # 补归档
+/caiyizou-skill-hub install <n>  # 安装并归档（如：「帮我装一个叫 xxx 的 skill」）
+/caiyizou-skill-hub create <n>   # 创建并归档（如：「帮我建一个叫 xxx 的新 skill」）
+/caiyizou-skill-hub archive <n>  # 补归档已有 Skill 到飞书表格
 /caiyizou-skill-hub list         # 列出所有
+/caiyizou-skill-hub doctor       # 自检：检查依赖/env/软链/模板/lark-cli 授权/飞书通达
 /caiyizou-skill-hub uninstall    # 卸载本体系
 ```
 
@@ -105,6 +106,29 @@ setup 时所有配置写入 `~/.config/caiyizou-skill-hub/env`：
 | `CAIYIZOU_CREATE_WIKI_NODE` | 「创建类」使用指南放哪份飞书文档 |
 | `CAIYIZOU_INSTALL_WIKI_NODE` | 「安装类」使用指南放哪份飞书文档 |
 | `CAIYIZOU_TABLE_URL` | 飞书表格 URL |
+
+---
+
+## 🩺 Troubleshooting — 出问题先跑这个
+
+```bash
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/doctor.sh
+```
+
+会依次检查：依赖（python3 / jq / lark-cli / git）→ env 配置 → 软链 → 模板 → lark-cli 授权 → 飞书表格可达 → 父 wiki 通达。任意 ❌ 会给出修复建议。
+
+### 常见问题速查
+
+| 问题 | 解决 |
+|------|------|
+| `command not found: lark-cli` | `brew install lark-cli` 或 `npm i -g @larksuite/cli` |
+| `command not found: jq` | `brew install jq` |
+| setup 写 env 失败 / Permission denied | `chmod 700 ~/.config/caiyizou-skill-hub && touch ~/.config/caiyizou-skill-hub/env && chmod 600 ~/.config/caiyizou-skill-hub/env` |
+| archive 报「飞书表格无该字段」 | 字段名走别名兼容（功能分类↔分类↔category 等）；改你表格里的字段名也行 |
+| agent 找不到我装的 skill | doctor 看「软链」段；Claude Code 必须软链到 `~/.claude/skills/`，Codex 直接读 `~/.agents/skills/` |
+| 飞书表格写入部分字段没生效 | doctor 看「飞书表格」段；用 `lark-cli base +field-list` 看你的表格实际字段名 |
+| Skill hub 的 SKILL.md 改了不生效 | Claude Code：检查软链在不在；Codex：直接重启对话 |
+| 模板占位符没替换（旧版 SKILL.md） | 跑 `bash scripts/render-guide.sh <create|install> <name> <ver> <cat>` 手动渲染 |
 
 ---
 

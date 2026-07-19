@@ -1,6 +1,6 @@
 ---
 name: caiyizou-skill-hub
-version: 1.6.0
+version: 1.7.0
 description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"。
 ---
 
@@ -58,6 +58,7 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问：
 | `/caiyizou-skill-hub create <name>` | 创建新 Skill 并归档 | 自己写新 Skill 时 |
 | `/caiyizou-skill-hub archive <name>` | 补归档已有 Skill 到飞书表格 | 漏归档、想补归档 |
 | `/caiyizou-skill-hub list` | 列出当前所有 Skill 及归档状态 | 不知道装过哪些时 |
+| `/caiyizou-skill-hub doctor` | 自检（依赖/env/软链/模板/lark-cli/飞书/wiki） | 任何时候出问题都先跑这个 |
 | `/caiyizou-skill-hub uninstall` | 卸载本体系（删软链/主目录/config/rules/模板） | 不想用了时 |
 
 ### 卸载细节
@@ -132,6 +133,16 @@ lark-cli base +record-list --base-token "$CAIYIZOU_BASE_TOKEN" --table-id "$CAIY
 ```
 
 agent 交叉对比，给用户两栏：本地 vs 飞书已归档，标出"已装未归档"。
+
+### `/caiyizou-skill-hub doctor`
+
+```bash
+bash ~/.agents/skills/caiyizou-skill-hub/scripts/doctor.sh
+```
+
+依次检查：依赖（python3 / jq / lark-cli / git）→ env 配置 → 软链 → 模板 → lark-cli 授权 → 飞书表格可达 → 父 wiki 通达。任意 ❌ 会给修复建议。
+
+**任何时候出问题先跑这个**，再决定是否重跑 setup / uninstall。
 
 
 
