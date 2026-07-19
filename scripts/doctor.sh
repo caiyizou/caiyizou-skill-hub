@@ -42,10 +42,10 @@ if [ -f "$SKILL_MD" ]; then
     FILE_VER=$(grep -m1 '^version:' "$SKILL_MD" 2>/dev/null | sed 's/version:[[:space:]]*//;s/[[:space:]]*$//' || echo "")
     if [ -z "$FILE_VER" ]; then
         warn "SKILL.md 无 frontmatter version 字段"
-    elif [ "$FILE_VER" = "1.9.0" ]; then
+    elif [ "$FILE_VER" = "1.10.1" ]; then
         ok "SKILL.md frontmatter version=$FILE_VER"
     else
-        warn "SKILL.md frontmatter version=$FILE_VER（当前期望 1.9.0）— git pull 一下？"
+        warn "SKILL.md frontmatter version=$FILE_VER（当前期望 1.10.1）— git pull 一下？"
     fi
 else
     warn "找不到 SKILL.md：$SKILL_MD（git clone 一下？）"
@@ -60,8 +60,8 @@ if [ -f "$ENV_FILE" ]; then
     # 版本检查（如 setup 早于 1.9 写的 env，会提示升级）
     if [ -z "$CAIYIZOU_HUB_VERSION" ]; then
         warn "HUB_VERSION 未记录（env 是 v1.7 及之前写的），建议重跑 setup"
-    elif [ "$CAIYIZOU_HUB_VERSION" != "1.9.0" ]; then
-        warn "HUB_VERSION=$CAIYIZOU_HUB_VERSION（当前 1.9.0），考虑重跑 setup 升级"
+    elif [ "$CAIYIZOU_HUB_VERSION" != "1.10.1" ]; then
+        warn "HUB_VERSION=$CAIYIZOU_HUB_VERSION（当前 1.10.1），考虑重跑 setup 升级"
     else
         ok "HUB_VERSION=$CAIYIZOU_HUB_VERSION"
     fi

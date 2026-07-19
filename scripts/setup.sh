@@ -272,7 +272,7 @@ echo ""
 echo "7️⃣  写入配置..."
 cat > "$ENV_FILE" <<ENV_EOF
 # caiyizou-skill-hub 配置（$(date +%Y-%m-%d) setup 时生成）
-export CAIYIZOU_HUB_VERSION="1.9.0"
+export CAIYIZOU_HUB_VERSION="1.10.1"
 export CAIYIZOU_AGENT_NAME="$AGENT_NAME"
 export CAIYIZOU_AGENT_SKILLS_DIR="$AGENT_SKILLS_DIR"
 export CAIYIZOU_NEED_SYMLINK="$NEED_SYMLINK"
