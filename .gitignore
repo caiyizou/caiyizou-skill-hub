@@ -1,0 +1,13 @@
+# 个人配置
+.env
+*.local
+.DS_Store
+
+# 编辑器
+.vscode/
+.idea/
+*.swp
+
+# 临时文件
+*.log
+tmp/
