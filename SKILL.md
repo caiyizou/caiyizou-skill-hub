@@ -35,19 +35,18 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问：
 **前置条件**：
 - Homebrew 或 npm（用于自动安装 lark-cli）
 
-## Agent 适配（setup 时自动选）
+## 🤖 跨 Agent 兼容性（关键实测表）
 
-不同 agent 的 skill 路径不一样，setup 会按用户的选择放到对应目录：
+不同 agent 的 skill 发现机制不一样——**已通过实测确认**：
 
-| Agent | Skill 安装路径 | 备注 |
-|-------|--------------|------|
-| Claude Code | `~/.claude/skills/` | 默认 |
-| Codex | `~/.codex/skills/` | |
-| Cursor | `~/.cursor/skills/` | |
-| Gemini CLI | `~/.gemini/skills/` | |
-| 其他 | setup 时询问 | |
+| Agent | 是否需要软链 | 状态 |
+|-------|-------------|------|
+| **Claude Code** | ✅ **必须**软链到 `~/.claude/skills/` | ✅ 已实测 |
+| **Codex** | ❌ **无需**软链（直接读 `~/.agents/skills/`） | ✅ 已实测 |
+| **Cursor** | ❓ 待实测 | 🧪 |
+| **Gemini CLI** | ❓ 待实测 | 🧪 |
 
-跨 agent 通用时，**主目录仍是 `~/.agents/skills/`**，各 agent 的 skills 目录是软链。
+**setup 第 4 步**：如果你选 Cursor / Gemini CLI，setup 会在主目录先装好但不建软链，让你跑一次 agent 问"列出你看到的全部 skill"——识别到就不建软链，识别不到自动建软链。结果写入 env 的 `NEED_SYMLINK`。
 
 ## 日常命令
 
@@ -83,56 +82,71 @@ agent 根据报告把所有 `⚠️` 项替换为：
 
 ### 模板与父 wiki 分流（用户在 setup 时提供）
 
-| 场景 | 模板 | 父 wiki（在 setup 时配置） |
+setup 第 3 步会把 skill 内嵌的 `templates/*.md` 自动 cp 到 `~/.claude/templates/`：
+
+| 场景 | 模板（setup 自动 cp 到本地） | 父 wiki（在 setup 时配置） |
 |------|------|------------------------------|
 | **自创 Skill** | `~/.claude/templates/skill-guide-create.md` | setup 时填 URL，agent 自动解析 |
 | **安装 Skill** | `~/.claude/templates/skill-guide-install.md` | setup 时填 URL，agent 自动解析 |
 
 ### 顺序：先建指南 → 一次性归档（零回填）
 
-1. 读取对应场景的模板
-2. 用 `lark-cli wiki +node-create` 在父 wiki 下创建子文档，拿到完整 URL
-3. 把填好的内容用 `lark-cli docs +update` 写入子文档（markdown 模式）
+1. 读取对应场景的模板（`~/.claude/templates/skill-guide-{create,install}.md`）
+2. 用 `lark-cli wiki +node-create --parent-node-token <CREATE|INSTALL>_WIKI_NODE` 建子文档
+3. 用 `lark-cli docs +update --content @/tmp/<name>-guide.md --doc-format markdown` 写内容
 4. 如飞书表格无「使用指南」列，用 `lark-cli base +field-create` 新增
-5. 用 `lark-cli base +record-batch-create` 一次性归档 Skill 记录，**写入时直接带上「使用指南」URL**，不再回填
+5. 用 `lark-cli base +record-batch-create` 一次性归档（**带「使用指南」URL**）
+6. **同名保护**：已存在同名记录时弹 3 选 1（更新现有 / 创建副本 / 取消）
 
 ## 飞书配置（setup 时填，不硬编码）
 
-setup 时用户只填**飞书链接**（URL），agent 用 lark-cli 自动解析 token：
+setup 时用户只填**飞书链接**（URL），agent 自动识别类型并解析 token：
 
-| 用户提供 | agent 解析 |
+| 用户给 | agent 解析 |
 |---------|-----------|
-| 飞书表格链接 | `lark-cli base +url-resolve` → base-token + table-id |
-| 父 wiki 链接 | `lark-cli wiki +url-resolve` → space-id + node-token |
+| `/base/<token>?table=tblXXX` 表格链接 | `lark-cli base +url-resolve` → base-token + table-id |
+| `/wiki/<token>` 嵌入式表格 | `lark-cli wiki +url-resolve` → `+node-get` → obj_token → `base +table-list` 拿 table-id |
+| `/wiki/<node_token>` 普通 wiki 节点 | `lark-cli wiki +url-resolve` → node-token |
 
 **禁止**在 setup 阶段直接问用户要 base-token / table-id / node-token（这些是 agent 的工作）。
 
 ## 存放位置规范（强制）
 
-所有 Skill 必须装到 `~/.agents/skills/<name>/`，并在**当前 agent 的 skills 目录**建软链：
+所有 Skill 必须装到 `~/.agents/skills/<name>/`，根据 agent 决定是否建软链（看上表）：
 
 ```
 ~/.agents/skills/
-├── caiyizou-skill-hub/             # 本 skill（自创）
+├── caiyizou-skill-hub/             ← 所有 skill 唯一源目录
 └── ...
 
-~/.claude/skills/    (Claude Code)
-~/.codex/skills/     (Codex)
-~/.cursor/skills/    (Cursor)
-~/.gemini/skills/    (Gemini CLI)
-└── caiyizou-skill-hub -> ../.agents/skills/caiyizou-skill-hub
+~/.claude/skills/        (Claude Code：必须软链在这里)
+  └── caiyizou-skill-hub -> ../.agents/skills/caiyizou-skill-hub
+
+~/.codex/skills/         (Codex：无需软链，可选备用)
+~/.cursor/skills/        (Cursor：实测决定)
+~/.gemini/skills/        (Gemini CLI：实测决定)
 ```
 
-**禁止**直接写入 `~/.claude/skills/` 等单 agent 目录（其他 Agent 读不到）。
+**禁止**直接把 skill 写到 `~/.claude/skills/` 等单 agent 目录（其他 Agent 读不到）。
+
+## 同名覆盖 3 选 1（强制）
+
+setup 写 rules / archive 写表格时，碰到已存在的同名 → **必须**弹 3 选 1，不能默默覆盖：
+
+1. 备份现有 → 再覆盖（默认）
+2. 创建副本（rename）
+3. 取消
 
 ## 内置脚本
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/setup.sh` | 交互式搭建（询问 agent + 飞书 URL；引导安装 lark-cli 和授权） |
-| `scripts/archive.sh` | 把 Skill 归档到飞书表格（从环境变量读 base-token/table-id） |
+| `scripts/setup.sh` | 交互式搭建（含实测 agent 兼容性 / 双 URL 解析 / 同名保护 / 引导装 lark-cli） |
+| `scripts/archive.sh` | 把 Skill 归档到飞书表格（同名保护 + jq 拼 JSON + update 路径） |
 | `scripts/add-field.sh` | 给飞书表格添加字段（从环境变量读 base-token/table-id） |
-| `scripts/pre-publish-clean.sh` | 发布前自动扫描个人配置（base-token / 路径 / 邮箱 / API key） |
+| `scripts/pre-publish-clean.sh` | 发布前自动扫描个人配置 |
+| `templates/skill-guide-create.md` | 自创 Skill 使用指南模板（setup 自动 cp 到本地） |
+| `templates/skill-guide-install.md` | 安装 Skill 使用指南模板（setup 自动 cp 到本地） |
 
 scripts 中所有 token 从环境变量 `$CAIYIZOU_BASE_TOKEN` / `$CAIYIZOU_TABLE_ID` 读取，setup 时写入 `~/.config/caiyizou-skill-hub/env`。
 
@@ -152,7 +166,8 @@ npx skills add https://github.com/caiyizou/caiyizou-skill-hub
 
 # 方式 3：手动
 git clone https://github.com/caiyizou/caiyizou-skill-hub.git ~/.agents/skills/caiyizou-skill-hub
-ln -s ~/.agents/skills/caiyizou-skill-hub ~/.{claude,codex,cursor,gemini}/skills/caiyizou-skill-hub
+# 按你 agent 类型决定是否建软链（见上面的实测表）
+# Claude Code 必须、Codex 不需要、Cursor/Gemini 实测
 ```
 
 ## 不适用场景
