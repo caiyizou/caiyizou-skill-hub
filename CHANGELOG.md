@@ -2,6 +2,14 @@
 
 All notable changes to this skill will be documented here. Format: [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/).
 
+## [1.9.0] - 2026-07-19
+
+### Fixed (第4轮)
+- archive.sh 改名分支路径 bug：之前选「创建副本 foo-v2」后会写路径 `/skills/foo-v2/SKILL.md`（目录不存在），现在 `RENAME_PATH_FROM` 保留原名，路径仍指原目录
+- archive.sh 查重读表里硬编码「技能名称」：现在传 `F_NAME`（别名后的真字段名）给 python，查重走别名兼容
+- archive.sh update 路径里的死代码 `.[''] = .['']` 已清理
+- doctor.sh 新增 1b 段：直接读 `SKILL.md` frontmatter version 字段与当前期望版本比对，不一致则提示 `git pull`
+
 ## [1.8.0] - 2026-07-19
 
 ### Fixed (P2)

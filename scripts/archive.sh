@@ -88,9 +88,10 @@ RAW_JSON=$(lark-cli base +record-list \
     --table-id "$TABLE_ID" \
     --format json 2>/dev/null || echo '{}')
 
-EXISTING_RECORD_ID=$(echo "$RAW_JSON" | SKILL_NAME="$SKILL_NAME" python3 -c "
+EXISTING_RECORD_ID=$(echo "$RAW_JSON" | SKILL_NAME="$SKILL_NAME" F_NAME="$F_NAME" python3 -c "
 import sys, json, os
 target = os.environ.get('SKILL_NAME', '')
+name_field = os.environ.get('F_NAME', '技能名称')
 try:
     d = json.load(sys.stdin)
     items = d.get('data', {}).get('items', [])
@@ -99,7 +100,7 @@ try:
         items = [{'record_id': rid, 'fields': {}} for rid in d.get('data', {}).get('record_id_list', [])]
     for it in items:
         fields = it.get('fields', {})
-        name = fields.get('技能名称', '')
+        name = fields.get(name_field, '')
         if name == target:
             print(it.get('record_id', ''))
             sys.exit(0)
@@ -109,6 +110,7 @@ except Exception:
 " 2>/dev/null || echo "")
 
 ACTION="create"
+RENAME_PATH_FROM=""
 if [ -n "$EXISTING_RECORD_ID" ] && [ "$EXISTING_RECORD_ID" != "None" ]; then
     # 同名记录已存在 → 同名保护（3 选 1）
     echo ""
@@ -125,8 +127,10 @@ if [ -n "$EXISTING_RECORD_ID" ] && [ "$EXISTING_RECORD_ID" != "None" ]; then
             ACTION="update:$EXISTING_RECORD_ID"
             ;;
         2)
+            # 改名 case：路径仍指原目录（实际文件在那），新记录只是飞书表格里共存
+            RENAME_PATH_FROM="$SKILL_NAME"
             SKILL_NAME="${SKILL_NAME}-v2"
-            echo "   → 重命名为 $SKILL_NAME"
+            echo "   → 重命名为 $SKILL_NAME（路径仍指原 ${RENAME_PATH_FROM}）"
             ACTION="create"
             ;;
         *)
@@ -141,11 +145,13 @@ JSON_FILE="/tmp/caiyizou-archive-$SKILL_NAME-$(date +%s).json"
 
 case "$ACTION" in
     create)
+        # 改名 case：路径仍指原目录，新记录只占用飞书表格一格
+        PATH_NAME="${RENAME_PATH_FROM:-$SKILL_NAME}"
         # 按 F_* 顺序入动态 fields + rows（空字段跳过）
         ROW_JSON=$(jq -n \
             --arg f_name "$F_NAME" --arg name "$SKILL_NAME" \
             --arg f_github "$F_GITHUB" \
-            --arg f_skillpath "$F_SKILLPATH" --arg path "$HOME/.agents/skills/$SKILL_NAME/SKILL.md" \
+            --arg f_skillpath "$F_SKILLPATH" --arg path "$HOME/.agents/skills/$PATH_NAME/SKILL.md" \
             --arg f_status "$F_STATUS" \
             --arg f_desc "$F_DESC" \
             --arg f_version "$F_VERSION" --arg version "$VERSION" \
@@ -214,16 +220,11 @@ $OLD_LOG"
             --arg f_log "$F_LOG" --arg log "$COMBINED_LOG" \
             --arg f_guide "$F_GUIDE" --arg guide "$GUIDE_URL" \
             '
-              (
-                {}
-                | (if $f_version != "" then .["'"'"'"] = .["'"'"'"] else . end)
-              )
-              | . as $out
-              | reduce (
-                  (if $f_version != "" then {key:$f_version, val:$version} else empty end),
-                  (if $f_log    != "" then {key:$f_log,    val:$log}    else empty end),
-                  (if $f_guide  != "" then {key:$f_guide,  val:$guide}  else empty end)
-                ) as $x ({}; .[$x.key] = $x.val)
+              reduce (
+                (if $f_version != "" then {key:$f_version, val:$version} else empty end),
+                (if $f_log    != "" then {key:$f_log,    val:$log}    else empty end),
+                (if $f_guide  != "" then {key:$f_guide,  val:$guide}  else empty end)
+              ) as $x ({}; .[$x.key] = $x.val)
             ')
         jq -n \
             --arg record_id "$RECORD_ID" \
