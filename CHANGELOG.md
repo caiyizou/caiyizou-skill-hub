@@ -2,6 +2,22 @@
 
 All notable changes to this skill will be documented here. Format: [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/).
 
+## [1.10.1] - 2026-07-19
+
+### Fixed (设计边界回归)
+- **回归修复**：v1.10.0 的「intent → slash command」表把通用「帮我装个 skill」「我要建 skill」也触发到了本 skill，破坏了作者个人 skill 工作流（本 skill 是给最终用户分享的，不是作者自己用的）
+- 重写 frontmatter `description`：明确**只在用户明确提到「caiyizou-skill-hub」/「skill hub」/「skill 库」/「skill 体系」/「归档」时才触发**
+- 重写 intent 表：加「⚠️ agent 必读：本 skill 的边界」段，明确不拦截通用 skill 工作流口述
+- 这个版本**作者不需要 setup**（你本来就没跑，自己另有工作流）
+
+## [1.10.0] - 2026-07-19
+
+### Added (intent 自动触发)
+- frontmatter description 扩展触发关键词
+- 「🗣️ 你口述 → agent 该执行的命令」整段意图表
+
+> ⚠️ **v1.10.0 的设计有问题**：作者本人没跑本 skill setup，agent 误把通用「帮我装个 skill」也路由到本 skill 流程，破坏作者个人工作流。**已被 v1.10.1 撤销**，仅留 commit 记录。
+
 ## [1.9.0] - 2026-07-19
 
 ### Fixed (第4轮)
