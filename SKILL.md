@@ -24,15 +24,16 @@ description: 一站式 Skill 管理体系。setup 一键搭建整套体系；ins
 /caiyizou-skill-hub setup
 ```
 
-agent 会自动跑 `scripts/setup.sh`，交互式询问 3 件事：
+agent 会自动跑 `scripts/setup.sh`，交互式询问：
 
 1. **你用的是什么 AI agent 工具？** → 决定 skill 软链装到哪里
 2. **你的飞书技能库表格链接是什么？** → agent 自动解析出 token + table-id
 3. **你的"创建类"父 wiki 链接 + "安装类"父 wiki 链接是什么？** → agent 自动解析出 node-token
+4. **如果未装 lark-cli → 自动引导安装**（brew/npm 二选一）
+5. **如果未授权飞书 → 自动引导执行 `lark-cli auth login`**
 
 **前置条件**：
-- 已安装 `lark-cli`（`brew install lark-cli` 或参考官方文档）
-- 已 `lark-cli auth login` 完成飞书授权
+- Homebrew 或 npm（用于自动安装 lark-cli）
 
 ## Agent 适配（setup 时自动选）
 
@@ -58,6 +59,26 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问 3 件事：
 | `/caiyizou-skill-hub archive <name>` | 补归档已有 Skill 到飞书表格 | 漏归档、想补归档 |
 | `/caiyizou-skill-hub list` | 列出当前所有 Skill 及归档状态 | 不知道装过哪些时 |
 
+## 发布到 GitHub / 分享给别人之前 — 必走清理流程
+
+**当用户说"发布/分享/上传/给朋友用"时，agent 必须先跑：**
+
+```bash
+bash scripts/pre-publish-clean.sh <skill-directory>
+```
+
+脚本会自动扫描目录里的所有 `.sh` / `.md` / `.json` 文件，找出硬编码的：
+- 飞书 base-token / table-id / wiki URL
+- 飞书租户标识（`nllsgu6nwe.feishu.cn` 等）
+- 邮箱 / 个人绝对路径 / API key
+
+agent 根据报告把所有 `⚠️` 项替换为：
+1. 优先：环境变量（从 `~/.config/caiyizou-skill-hub/env` 读）
+2. 次之：占位符（`YOUR_BASE_TOKEN_HERE` 等）
+3. 最后：setup 时由用户填入
+
+**清完后再 `git push`**——不要把个人 token 推到 GitHub。
+
 ## 标准化流程（任何 Skill 安装/创建都自动跑）
 
 ### 模板与父 wiki 分流（用户在 setup 时提供）
@@ -81,7 +102,7 @@ setup 时用户只填**飞书链接**（URL），agent 用 lark-cli 自动解析
 
 | 用户提供 | agent 解析 |
 |---------|-----------|
-| 飞书表格链接（`https://nllsgu0xxx.feishu.cn/wiki/<token>` 或 `/base/<token>`） | `lark-cli base +url-resolve` → base-token + table-id |
+| 飞书表格链接 | `lark-cli base +url-resolve` → base-token + table-id |
 | 父 wiki 链接 | `lark-cli wiki +url-resolve` → space-id + node-token |
 
 **禁止**在 setup 阶段直接问用户要 base-token / table-id / node-token（这些是 agent 的工作）。
@@ -108,9 +129,10 @@ setup 时用户只填**飞书链接**（URL），agent 用 lark-cli 自动解析
 
 | 脚本 | 用途 |
 |------|------|
-| `scripts/setup.sh` | 交互式搭建（询问 agent + 飞书 URL，自动写入 rules） |
+| `scripts/setup.sh` | 交互式搭建（询问 agent + 飞书 URL；引导安装 lark-cli 和授权） |
 | `scripts/archive.sh` | 把 Skill 归档到飞书表格（从环境变量读 base-token/table-id） |
 | `scripts/add-field.sh` | 给飞书表格添加字段（从环境变量读 base-token/table-id） |
+| `scripts/pre-publish-clean.sh` | 发布前自动扫描个人配置（base-token / 路径 / 邮箱 / API key） |
 
 scripts 中所有 token 从环境变量 `$CAIYIZOU_BASE_TOKEN` / `$CAIYIZOU_TABLE_ID` 读取，setup 时写入 `~/.config/caiyizou-skill-hub/env`。
 
@@ -129,8 +151,7 @@ redskill install caiyizou-skill-hub
 npx skills add https://github.com/caiyizou/caiyizou-skill-hub
 
 # 方式 3：手动
-curl -L https://github.com/caiyizou/caiyizou-skill-hub/archive/main.tar.gz | tar xz
-mv caiyizou-skill-hub-main ~/.agents/skills/caiyizou-skill-hub
+git clone https://github.com/caiyizou/caiyizou-skill-hub.git ~/.agents/skills/caiyizou-skill-hub
 ln -s ~/.agents/skills/caiyizou-skill-hub ~/.{claude,codex,cursor,gemini}/skills/caiyizou-skill-hub
 ```
 

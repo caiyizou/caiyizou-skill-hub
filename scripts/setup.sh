@@ -189,14 +189,60 @@ archive 时用 \$CAIYIZOU_BASE_TOKEN / \$CAIYIZOU_TABLE_ID 替换硬编码。
 RULES_EOF
 echo "   ✅ Rules 已写入：$RULES_FILE"
 
-# 8. 检查 lark-cli
+# 8. 检查 lark-cli（如未安装则引导安装）
 echo ""
 echo "8️⃣ 检查 lark-cli..."
 if ! command -v lark-cli >/dev/null 2>&1; then
-    echo "   ⚠️ lark-cli 未安装，归档到飞书的功能将不可用"
-    echo "   安装方式：brew install lark-cli"
-else
+    echo "   ⚠️  lark-cli 未安装——归档到飞书的功能需要它"
+    echo ""
+    echo "   推荐安装方式（选一个）："
+    echo "     A) Homebrew (Mac/Linux)：brew install lark-cli"
+    echo "     B) NPM (跨平台)：        npm install -g @larksuite/cli"
+    echo "     C) 官方脚本 (Linux)：    curl -fsSL https://open.feishu.cn/install.sh | bash"
+    echo ""
+    read -p "   立即尝试安装 lark-cli？(y/N) " install_choice
+    install_choice="${install_choice:-N}"
+    if [[ "$install_choice" =~ ^[Yy]$ ]]; then
+        if command -v brew >/dev/null 2>&1; then
+            echo "   → 调用 brew install lark-cli..."
+            brew install lark-cli || {
+                echo "   ❌ brew 安装失败，请手动安装后再跑 setup"
+                exit 1
+            }
+        elif command -v npm >/dev/null 2>&1; then
+            echo "   → 调用 npm install -g @larksuite/cli..."
+            npm install -g @larksuite/cli || {
+                echo "   ❌ npm 安装失败，请手动安装后再跑 setup"
+                exit 1
+            }
+        else
+            echo "   ❌ 未检测到 brew 或 npm，请手动安装 lark-cli"
+            exit 1
+        fi
+    else
+        echo "   ⚠️ 跳过——飞书归档功能将不可用，但本地 rules 已生效"
+    fi
+fi
+
+if command -v lark-cli >/dev/null 2>&1; then
     echo "   ✓ lark-cli 已安装：$(lark-cli --version 2>&1 | head -1)"
+
+    # 9. 检查 lark-cli auth（已授权？）
+    echo ""
+    echo "9️⃣ 检查飞书授权状态..."
+    if lark-cli auth status 2>/dev/null | grep -q "logged in\|已登录\|authorized"; then
+        echo "   ✓ 已授权"
+    else
+        echo "   ⚠️  未检测到飞书授权——归档写入会失败"
+        echo "   授权命令：lark-cli auth login"
+        read -p "   是否现在执行授权？(y/N) " auth_choice
+        auth_choice="${auth_choice:-N}"
+        if [[ "$auth_choice" =~ ^[Yy]$ ]]; then
+            lark-cli auth login
+        else
+            echo "   ⚠️ 跳过——稍后记得手动跑 lark-cli auth login"
+        fi
+    fi
 fi
 
 echo ""
