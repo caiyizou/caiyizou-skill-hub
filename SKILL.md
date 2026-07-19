@@ -1,7 +1,7 @@
 ---
 name: caiyizou-skill-hub
-version: 1.9.0
-description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"、"帮我装个叫 X 的 skill"、"我要建一个 X skill"、"skill hub 怎么用"、"caiyizou-skill-hub"。
+version: 1.10.1
+description: 飞书 Skill 库管理 skill 体系（分发给他人用）。setup 一键搭建；install/create/archive/doctor/uninstall/list 6 个命令。**本 skill 只在用户明确提到「caiyizou-skill-hub」「skill hub」「skill 库」「skill 体系」时才触发；不拦截通用「帮我装个 X skill」之类的话 — 那是用户自己的 skill 工作流**。Use when the user explicitly invokes "/caiyizou-skill-hub ..." or says things like "搭建 skill hub"、"初始化这个 skill"、"caiyizou-skill-hub 怎么用"。
 ---
 
 # caiyizou-skill-hub
@@ -72,27 +72,38 @@ bash ~/.agents/skills/caiyizou-skill-hub/scripts/uninstall.sh --keep-templates  
 
 卸载 rules 前会自动 `cp` 备份到 `*.pre-uninstall.<timestamp>` 防误删。
 
-## 🗣️ 你口述 → agent 该执行的命令（agent 必读）
+## ⚠️ agent 必读：本 skill 的边界
 
-**agent 看到下面任何口述都要先映射到斜杠命令**，再走下方「命令→动作映射」流程。**禁止**直接 `mkdir` + `git clone` + `ln -s` 三连 — 那会跳过归档 + 飞书指南 + doctor。
+> **核心约束**：本 skill 叫「caiyizou-skill-hub」，是**给最终用户分享给他人用的**。作者（你自己）个人使用有一整套**自己的 skill 工作流**，与本 skill 完全无关。
+>
+> **agent 只在用户**明确**说下面任一情况时**才走本 skill 的命令→动作映射：**
+>
+> 1. 用户**键入 `/caiyizou-skill-hub ...`** 斜杠命令（这是 Claude Code 等 agent 的强制触发点）
+> 2. 用户**口述**包含以下任一关键词：
+>    - 「**caiyizou-skill-hub**」（skill 全名）
+>    - 「**skill hub**」（几乎就是本 skill 的别称）
+>    - 「**skill 库**」「**skill 体系**」「**飞书 skill 表**」「**归档 skill**」
+>    - 「**初始化 caiyizou-skill-hub**」「**搭 skill 体系**」「**caiyizou-skill-hub 出问题**」
+>
+> **其他情况 agent 一律不拦截**：
+> - 「**帮我装个 X skill**」（用户可能想用**自己**的 skill 工作流）
+> - 「**我要写个 X skill**」（同上）
+> - 「**列下我的 skill**」「**我装了哪些**」（同上）
+> - 任何没明确提到「caiyizou-skill-hub」/「skill hub」/「skill 库」/「skill 体系」/「归档」的口语
 
-| 你对 agent 说的话 | agent 必须先转成 | 然后走 |
-|------------------|------------------|--------|
-| 「帮我装/安装一个叫 X 的 skill」「我装个 X」「load X skill」 | `/caiyizou-skill-hub install X` | §`/caiyizou-skill-hub install <name>` 节 |
-| 「帮我建/创建/写/做/做一个 X skill」「我想做 X」 | `/caiyizou-skill-hub create X` | §`/caiyizou-skill-hub create <name>` 节 |
-| 「列出我所有 skill」「我装过哪些」 | `/caiyizou-skill-hub list` | §`/caiyizou-skill-hub list` 节 |
-| 「补归档 X」「X 没归档上」「X 在飞书里没有」 | `/caiyizou-skill-hub archive X` | §`/caiyizou-skill-hub archive <name>` 节 |
-| 「skill hub 出问题」「自检」「找找哪个挂了」 | `/caiyizou-skill-hub doctor` | §`/caiyizou-skill-hub doctor` 节 |
-| 「卸载 skill hub」「不用了」 | `/caiyizou-skill-hub uninstall` | §卸载细节 节 |
-| 「skill 体系怎么搭」「从头设置」「初始化 skill hub」 | `/caiyizou-skill-hub setup` | §一键搭建 节 |
+### 映射表（仅上面 2 类情况触发时参考）
 
-**判别要点（agent 必读）**：
+> ⚠️ **本表只在「边界条件命中」时使用**，不是「看到任意装 skill 的字眼就触发」。
 
-1. 出现「**装/安装/load/install**」+「**skill**」 → `install`
-2. 出现「**建/创建/写/新建/make/create**」+「**skill**」 → `create`
-3. 出现「**这个 skill**」「**刚才那个 skill**」但没明说名字 → **先反问名字**，别瞎执行
-4. 出现「**列出 skill hub**」/「**自检 doctor**」 → `list` / `doctor`
-5. **不要自己造目录 + git clone + ln -s**，一定先转斜杠命令，否则会跳过归档与飞书指南生成
+| 触发情形 | agent 该转的命令 |
+|---------|------------------|
+| `caiyizou-skill-hub setup` / 「搭 skill hub 体系」 | §`/caiyizou-skill-hub setup` |
+| `caiyizou-skill-hub install X` / 「用 caiyizou-skill-hub 装 X」 | §`/caiyizou-skill-hub install <name>` |
+| `caiyizou-skill-hub create X` / 「用 caiyizou-skill-hub 建 X」 | §`/caiyizou-skill-hub create <name>` |
+| `caiyizou-skill-hub archive X` / 「把 X 补归档到 caiyizou-skill-hub」 | §`/caiyizou-skill-hub archive <name>` |
+| `caiyizou-skill-hub list` / 「列 caiyizou-skill-hub 里的 skill」 | §`/caiyizou-skill-hub list` |
+| `caiyizou-skill-hub doctor` / 「caiyou-skill-hub 自检」 | §`/caiyizou-skill-hub doctor` |
+| `caiyizou-skill-hub uninstall` | §卸载细节 |
 
 ---
 
