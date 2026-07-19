@@ -2,6 +2,19 @@
 
 All notable changes to this skill will be documented here. Format: [Keep a Changelog](https://keepachangelog.com/zh-CN/1.1.0/).
 
+## [1.7.0] - 2026-07-19
+
+### Fixed (P1)
+- 新增 `scripts/doctor.sh`：自检入口（依赖/env/软链/模板/lark-cli 授权/飞书表格/wiki 通达）；失败给修复建议
+- setup.sh 第 9 步 lark-cli auth 检测：用 `lark-cli auth whoami + jq 解析` 替代脆弱的文本正则
+- archive.sh：先 `+field-list` 读表格实际字段，字段名走别名兼容（功能分类↔分类↔category 等），跳过不存在的字段不报错
+
+### Changed
+- SKILL.md + README.md 增加 `/caiyizou-skill-hub doctor` 命令
+- README.md §快速开始 第 5 步给具体示例（"帮我装 xxx skill"）
+- README.md 新增 §🩺 Troubleshooting 段（8 个常见问题速查表）
+- doctor.sh 兼容 bash 3（用 tr 不用 ${var,,}）
+
 ## [1.6.0] - 2026-07-19
 
 ### Fixed (P0)
