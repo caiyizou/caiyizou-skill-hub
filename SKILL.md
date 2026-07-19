@@ -1,5 +1,6 @@
 ---
 name: caiyizou-skill-hub
+version: 1.5.0
 description: 一站式 Skill 管理体系。setup 一键搭建整套体系；install/create/archive 命令标准化 Skill 的安装、创建、归档、生成小白使用指南并回填飞书表格。适配任意 AI agent（Claude Code / Codex / Cursor / Gemini CLI 等）。Use when the user asks to "搭建 skill 体系"、"管理 skill"、"初始化 skill hub"、"安装 skill 并归档"、"创建新 skill 并归档"、"列出我所有 skill"。
 ---
 
@@ -28,7 +29,7 @@ agent 会自动跑 `scripts/setup.sh`，交互式询问：
 
 1. **你用的是什么 AI agent 工具？** → 决定 skill 软链装到哪里
 2. **你的飞书技能库表格链接是什么？** → agent 自动解析出 token + table-id
-3. **你的"创建类"父 wiki 链接 + "安装类"父 wiki 链接是什么？** → agent 自动解析出 node-token
+3. **你之后装/创建 skill 时生的小白使用指南，分别放飞书哪两份文档下面？** → agent 自动解析出 node-token
 4. **如果未装 lark-cli → 自动引导安装**（brew/npm 二选一）
 5. **如果未授权飞书 → 自动引导执行 `lark-cli auth login`**
 
@@ -174,10 +175,10 @@ agent 根据报告把所有 `⚠️` 项替换为：
 
 setup 第 3 步会把 skill 内嵌的 `templates/*.md` 自动 cp 到 `~/.claude/templates/`：
 
-| 场景 | 模板（setup 自动 cp 到本地） | 父 wiki（在 setup 时配置） |
+| 场景 | 模板（setup 自动 cp 到本地） | 使用指南存放文档（在 setup 时配置） |
 |------|------|------------------------------|
-| **自创 Skill** | `~/.claude/templates/skill-guide-create.md` | setup 时填 URL，agent 自动解析 |
-| **安装 Skill** | `~/.claude/templates/skill-guide-install.md` | setup 时填 URL，agent 自动解析 |
+| **自创 Skill** | `~/.claude/templates/skill-guide-create.md` | setup 时填飞书文档 URL，agent 自动解析为 node-token |
+| **安装 Skill** | `~/.claude/templates/skill-guide-install.md` | setup 时填飞书文档 URL，agent 自动解析为 node-token |
 
 ### 顺序：先建指南 → 一次性归档（零回填）
 
